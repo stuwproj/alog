@@ -1,0 +1,10 @@
+with-expecter: true
+issue-845-fix: true
+packages:
+  stuw.net/alog/internal/storage:
+    interfaces:
+      File:
+      FileSystem:
+    config:
+      dir: internal/storage/mocks
+      outpkg: mocks

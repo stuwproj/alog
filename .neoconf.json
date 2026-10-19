@@ -1,0 +1,10 @@
+{
+  "lspconfig": {
+    "gopls": {
+      "gopls": {
+        "buildFlags": ["-tags=flaky"],
+        "env": { "GOFLAGS": "-tags=flaky,alog_fast_writev" }
+      }
+    }
+  }
+}

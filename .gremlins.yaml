@@ -1,0 +1,20 @@
+unleash:
+  integration: false
+  output: .tmp/mutation/gremlins.json
+  workers: 0
+  tags: alog_fast_writev
+  threshold:
+    efficacy: 0
+    mutant-coverage: 0
+
+mutants:
+  arithmetic-base:
+    enabled: true
+  conditionals-boundary:
+    enabled: true
+  conditionals-negation:
+    enabled: true
+  increment-decrement:
+    enabled: true
+  invert-negatives:
+    enabled: true

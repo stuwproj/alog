@@ -1,0 +1,8 @@
+.work
+.tmp
+bin
+testdata
+_metrics/**/*-dirty.*
+*.tmp
+*.test
+*.prof

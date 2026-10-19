@@ -1,0 +1,168 @@
+version: "2"
+run:
+  allow-parallel-runners: true
+  build-tags:
+    - alog_fast_writev
+  timeout: 5m
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+linters:
+  default: none
+  enable:
+    - canonicalheader
+    - goheader
+
+    - bodyclose
+    - contextcheck
+    - copyloopvar
+    - dupl
+    - durationcheck
+    - errcheck
+    - errname
+    - errorlint
+    - forbidigo
+    - ginkgolinter
+    - goconst
+    - gocyclo
+    - gosec
+    - govet
+    - ineffassign
+    - lll
+    - modernize
+    - misspell
+    - nakedret
+    - nilerr
+    - noctx
+    - prealloc
+    - revive
+    - rowserrcheck
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+  settings:
+    govet:
+      enable:
+        - appends
+        - asmdecl
+        - assign
+        - atomic
+        - atomicalign
+        - bools
+        - buildtag
+        - cgocall
+        - composites
+        - copylocks
+        - deepequalerrors
+        - defers
+        - directive
+        - errorsas
+        - fieldalignment
+        - findcall
+        - framepointer
+        - httpresponse
+        - ifaceassert
+        - loopclosure
+        - lostcancel
+        - nilfunc
+        - nilness
+        - printf
+        - reflectvaluecompare
+        - shadow
+        - shift
+        - sigchanyzer
+        - slog
+        - sortslice
+        - stdmethods
+        - stdversion
+        - stringintconv
+        - structtag
+        - testinggoroutine
+        - tests
+        - timeformat
+        - unmarshal
+        - unreachable
+        - unsafeptr
+        - unusedresult
+        - unusedwrite
+        - waitgroup
+      settings:
+        shadow:
+          strict: false
+    goheader:
+      template-path: LICENSE
+    dupl:
+      threshold: 120
+    errcheck:
+      check-type-assertions: true
+    forbidigo:
+      forbid:
+        - pattern: '^fmt\.Print.*$'
+        - pattern: '^print$'
+        - pattern: '^println$'
+    gocyclo:
+      min-complexity: 25
+    lll:
+      line-length: 120
+    revive:
+      rules:
+        - name: blank-imports
+        - name: bool-literal-in-expr
+        - name: comment-spacings
+        - name: confusing-results
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: early-return
+        - name: empty-block
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: exported
+        - name: if-return
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: import-shadowing
+        - name: modifies-parameter
+        - name: modifies-value-receiver
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: string-of-int
+        - name: superfluous-else
+        - name: time-naming
+        - name: unreachable-code
+        - name: unexported-return
+        - name: unused-parameter
+        - name: var-declaration
+    modernize:
+      disable:
+        - omitzero
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - goconst
+          - dupl
+          - gocyclo
+          - lll
+          - gosec
+        path: '^test/.*'
+      - linters:
+          - goconst
+          - dupl
+          - gocyclo
+          - lll
+          - gosec
+        path: '.*_(test|helper)\.go$'
+      - linters:
+          - errcheck
+        path: '.*_(test|helper)\.go$'
+        text: 'Error return value of `.*\.Close` is not checked'
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
