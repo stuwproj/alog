@@ -1,6 +1,6 @@
 # alog
 
-`alog` is a disk-backed append-only log for Go. It stores byte records under sequence numbers in segments, with atomic batch appends, configurable durability, and retention controls.
+`alog` ("a-log") is a disk-backed append-only log for Go. It stores byte records under sequence numbers in segments, with atomic batch appends, configurable durability, and retention controls.
 
 Its design targets high read and write performance while accommodating a broad range of common append-only logging use cases.
 
