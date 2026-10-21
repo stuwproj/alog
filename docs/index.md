@@ -4,7 +4,7 @@ title: Home
 
 # alog
 
-`alog` aims to be a fast, general-purpose append-only log for Go. It stores opaque byte records in
+`alog` is a disk-backed append-only log for Go. It stores opaque byte records in
 segments and assigns consecutive `uint64` sequence numbers. Each append call
 writes an atomic batch: after crash recovery, the complete batch is retained
 or none of it is.
