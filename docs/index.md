@@ -9,6 +9,9 @@ segments and assigns consecutive `uint64` sequence numbers. Each append call
 writes an atomic batch: after crash recovery, the complete batch is retained
 or none of it is.
 
+Its design targets high read and write performance while accommodating a
+broad range of common append-only logging use cases.
+
 ## Use cases
 
 - **Write-ahead logs:** persist ordered changes for replay and recovery.
