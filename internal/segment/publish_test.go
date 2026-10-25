@@ -153,6 +153,37 @@ func TestSegment_Refresh(t *testing.T) {
 		require.ErrorIs(t, sc.Err(), io.EOF)
 	})
 
+	t.Run("maps again when a segment that is not preallocated grew", func(t *testing.T) {
+		t.Parallel()
+
+		s, err := NewLoader(NewFactory(-1, false, 0), t.TempDir(), 0, nil).Create(0)
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, s.Close()) })
+
+		appendRecords(t, s, 0, 2)
+
+		sc, err := s.NewScanner(noLimit, false)
+		require.NoError(t, err)
+
+		count := func() (n int) {
+			for sc.Scan() {
+				if !sc.Header.IsCheckpoint() {
+					n++
+				}
+			}
+
+			return n
+		}
+
+		require.Equal(t, 2, count())
+
+		appendRecords(t, s, 2, 5)
+		require.True(t, s.Refresh(sc))
+		require.Equal(t, 3, count())
+		require.ErrorIs(t, sc.Err(), io.EOF)
+		require.Equal(t, 5, scanAll(t, s), "a new scanner reads what was appended after the first mapping")
+	})
+
 	t.Run("moves the end back when the segment was truncated", func(t *testing.T) {
 		t.Parallel()
 

@@ -72,7 +72,12 @@ func (s *Segment) newScanner(
 		v = scanner.NewPreallocFrameValidator(s.frameGen)
 	}
 
-	region, err := s.mapping()
+	var covers int64
+	if bounded {
+		covers = s.Published()
+	}
+
+	region, err := s.mapping(covers)
 	if err != nil {
 		return nil, err
 	}
@@ -125,13 +130,15 @@ func (s *Segment) Refresh(sc *scanner.Scanner) bool {
 		return false
 	}
 
-	region := s.currentMapping()
-	if region == nil {
+	published := s.Published()
+
+	region, err := s.mapping(published)
+	if err != nil || region == nil {
 		return false
 	}
 
 	data := region.Bytes()
-	end := min(int64(len(data)), s.Published())
+	end := min(int64(len(data)), published)
 	current := int64(len(loader.Data))
 
 	if end == current {
@@ -165,12 +172,16 @@ func (s *Segment) NewScanner(limit uint32, unsafe bool) (*scanner.Scanner, error
 }
 
 // mapping returns the mapping of the file, and maps it first if that was not done yet.
-// The caller must hold the lease, which keeps the mapping from being released.
-func (s *Segment) mapping() (*scanner.MMapRegion, error) {
+// A file that was not preallocated grows after it was mapped, so when the mapping is shorter
+// than covers, which is an offset that was published, the file is mapped again. A mapping that
+// is replaced stays in place until the segment is closed, because scanners and the payloads
+// they borrowed still point into it.
+// The caller must hold the lease, which keeps the mappings from being released.
+func (s *Segment) mapping(covers int64) (*scanner.MMapRegion, error) {
 	s.mmapMu.Lock()
 	defer s.mmapMu.Unlock()
 
-	if s.mmap != nil {
+	if s.mmap != nil && int64(s.mmap.Len()) >= covers {
 		return s.mmap, nil
 	}
 
@@ -179,15 +190,15 @@ func (s *Segment) mapping() (*scanner.MMapRegion, error) {
 		return nil, err
 	}
 
+	if s.mmap != nil {
+		if mmap.Len() <= s.mmap.Len() {
+			return s.mmap, errors.Join(mmap.Close())
+		}
+
+		s.retired = append(s.retired, s.mmap)
+	}
+
 	s.mmap = mmap
 
 	return mmap, nil
-}
-
-// currentMapping returns the mapping of the file if there is one.
-func (s *Segment) currentMapping() *scanner.MMapRegion {
-	s.mmapMu.Lock()
-	defer s.mmapMu.Unlock()
-
-	return s.mmap
 }

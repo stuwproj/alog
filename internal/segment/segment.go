@@ -54,6 +54,7 @@ type Segment struct {
 	tracker        *checkpoint.Tracker
 	offsetIndex    *checkpoint.Index
 	mmap           *scanner.MMapRegion
+	retired        []*scanner.MMapRegion
 	lease          *Lease
 	pubRead        atomic.Pointer[readPosition]
 	bufs           [][]byte
@@ -206,13 +207,15 @@ func (s *Segment) Close() error {
 	s.lease.Revoke()
 
 	s.mmapMu.Lock()
-	mmap := s.mmap
-	s.mmap = nil
+	mappings := append(s.retired, s.mmap)
+	s.mmap, s.retired = nil, nil
 	s.mmapMu.Unlock()
 
 	var err error
-	if mmap != nil {
-		err = mmap.Close()
+	for _, mmap := range mappings {
+		if mmap != nil {
+			err = errors.Join(err, mmap.Close())
+		}
 	}
 
 	return errors.Join(err, s.file.Close())
