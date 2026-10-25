@@ -1,0 +1,6 @@
+nav:
+  - index.md
+  - Guide:
+      - loading.md
+      - scanning.md
+      - writing.md
