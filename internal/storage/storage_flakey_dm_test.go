@@ -32,7 +32,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/johnknl/go-dmflakey"
+	"github.com/fuweid/go-dmflakey"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 )

@@ -27,9 +27,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"stuw.net/alog/internal/frame"
 	"stuw.net/alog/internal/scanner"
-	"github.com/stretchr/testify/require"
 )
 
 type failOnValidate struct{}
