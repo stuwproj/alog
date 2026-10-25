@@ -5,21 +5,28 @@ go 1.26.9
 retract v1.0.0 // don't use v1.0.0
 
 require (
+	github.com/cucumber/godog v0.16.0
 	github.com/fuweid/go-dmflakey v0.0.0-20240326101426-9fa9d5c2ac1c
-	stuw.net/frame v0.4.0
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/goleak v1.3.0
 	golang.org/x/sys v0.14.0
+	stuw.net/frame v0.4.0
 )
 
 require (
+	github.com/cucumber/gherkin/go/v42 v42.0.0 // indirect
+	github.com/cucumber/messages/go/v34 v34.2.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
+	github.com/hashicorp/go-memdb v1.3.5 // indirect
+	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	stuw.net/go-tools v0.0.4 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/yuin/goldmark v1.7.13 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	stuw.net/go-tools v0.0.5 // indirect
 )
 
 tool (
