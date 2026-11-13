@@ -282,6 +282,13 @@ func (log *Log) AppendMultipart(payloads ...MultipartPayload) (lastSeq uint64, e
 // AppendMultipartBatch writes multipart payload records as one batch and returns the last assigned sequence.
 // It is not safe for concurrent use; use NewWriter(...).Start(ctx) for concurrent producers.
 func (log *Log) AppendMultipartBatch(payloads []MultipartPayload) (lastSeq uint64, err error) {
+	return log.AppendMultipartBatchOffsets(payloads, nil)
+}
+
+// AppendMultipartBatchOffsets is AppendMultipartBatch, and also stores the physical offset of
+// the frame of every record in offsets, so that a scanner can later be moved there with
+// Scanner.SeekOffset. offsets must be at least as long as payloads, or nil.
+func (log *Log) AppendMultipartBatchOffsets(payloads []MultipartPayload, offsets []int64) (lastSeq uint64, err error) {
 	if len(payloads) == 0 {
 		return 0, nil
 	}
@@ -292,7 +299,7 @@ func (log *Log) AppendMultipartBatch(payloads []MultipartPayload) (lastSeq uint6
 		}
 	}
 
-	seq, err := log.chain.AppendBatch(payloads)
+	seq, err := log.chain.AppendBatchOffsets(payloads, offsets)
 	if err != nil {
 		return 0, mapAppendError(err, "failed to append multipart payloads")
 	}

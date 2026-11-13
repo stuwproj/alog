@@ -200,6 +200,17 @@ func (c *Chain) Tail() *Segment {
 
 // AppendBatch appends multipart payloads atomically with chain-level admission and accounting.
 func (c *Chain) AppendBatch(batch []frame.MultiPartPayload) (uint64, error) {
+	return c.AppendBatchOffsets(batch, nil)
+}
+
+// AppendBatchOffsets is AppendBatch, and also stores the physical offset of the frame of every
+// payload in offsets, which is either nil, or at least as long as the batch. The frames of a
+// batch are contiguous, and a checkpoint is only written after the last one.
+func (c *Chain) AppendBatchOffsets(batch []frame.MultiPartPayload, offsets []int64) (uint64, error) {
+	if offsets != nil && len(offsets) < len(batch) {
+		return 0, fmt.Errorf("%d offsets for a batch of %d", len(offsets), len(batch))
+	}
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if len(batch) == 0 {
@@ -217,6 +228,15 @@ func (c *Chain) AppendBatch(batch []frame.MultiPartPayload) (uint64, error) {
 
 	oldDiskSize := lastSegment.DiskSize()
 	startSeq := lastSegment.NextSequence()
+
+	if offsets != nil {
+		offset := lastSegment.WriteOffset()
+		for i, payload := range batch {
+			offsets[i] = offset
+			offset += frame.HeaderSize + payload.Size()
+		}
+	}
+
 	n, err := lastSegment.AppendBatch(batch)
 	if err != nil {
 		return 0, c.checkFailed(err)

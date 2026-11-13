@@ -85,6 +85,8 @@ type world struct {
 
 	producerSeqs [][]uint64
 	reader       []uint64
+
+	spots map[string]spot
 }
 
 func initializeScenario(sc *godog.ScenarioContext) {
@@ -106,6 +108,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	w.registerAssertions(sc)
 	w.registerScanning(sc)
 	w.registerConcurrency(sc)
+	w.registerOffsets(sc)
 }
 
 func (w *world) cleanup() {

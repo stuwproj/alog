@@ -24,6 +24,7 @@ package alog
 import (
 	"errors"
 	"io"
+	"math"
 
 	"stuw.net/alog/internal/scanner"
 	"stuw.net/alog/internal/segment"
@@ -281,6 +282,79 @@ func (s *Scanner) SeekSequence(seq uint64) error {
 	}
 
 	return err
+}
+
+// SeekOffset positions the scanner so that the next Scan reads the record with sequence seq,
+// which must start at the physical offset given, as reported by LastOffset or by
+// Log.AppendMultipartBatchOffsets. Unlike SeekSequence it does not use the index of the segment,
+// so it takes constant time, and it reuses the scanner of the segment when it is the same one.
+// A sequence that is not retained returns ErrOutOfBounds, and a segment that was recycled
+// ErrSegmentReaped. An offset that is not the start of that record fails the next Scan, or
+// returns a different record, so a caller must check LastSequence.
+func (s *Scanner) SeekOffset(seq uint64, offset int64) error {
+	if errors.Is(s.err, io.EOF) && !s.closed {
+		s.err = nil
+	}
+
+	if s.closed || s.err != nil {
+		return s.Err()
+	}
+
+	var err error
+
+	for range attempts {
+		var retry bool
+
+		if retry, err = s.seekOffset(seq, offset); !retry {
+			break
+		}
+	}
+
+	if err != nil && !errors.Is(err, ErrOutOfBounds) {
+		s.setErr(err)
+	}
+
+	return err
+}
+
+func (s *Scanner) seekOffset(seq uint64, offset int64) (retry bool, err error) {
+	seg := s.log.chain.Snapshot().Locate(seq)
+	if seg == nil {
+		return false, ErrOutOfBounds
+	}
+
+	sc, token := s.sc, s.token
+	if seg != s.segment {
+		if sc, token, err = newSegmentScanner(seg, s.limit, s.limited); err != nil {
+			return errors.Is(err, ErrSegmentReaped), err
+		}
+	}
+
+	lease := seg.Lease()
+	if !lease.AcquireAt(&token, seq) {
+		return true, ErrSegmentReaped
+	}
+
+	seg.Refresh(sc)
+
+	if idx := seq - sc.BaseSeq; seq < sc.BaseSeq || idx > math.MaxUint32 {
+		lease.Release()
+
+		return false, ErrOutOfBounds
+	}
+
+	err = sc.Seek(uint32(seq-sc.BaseSeq), offset)
+	lease.Release()
+
+	if err != nil {
+		return false, err
+	}
+
+	s.segment = seg
+	s.sc = sc
+	s.token = token
+
+	return false, nil
 }
 
 // seek positions the scanner at seq. It reports whether the log changed in a way that
