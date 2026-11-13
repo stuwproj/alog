@@ -22,8 +22,10 @@
 package alog_test
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"stuw.net/alog"
 )
@@ -123,6 +125,56 @@ func ExampleScanner_SeekSequence() {
 
 	// Output:
 	// 0:a
+}
+
+// ExampleScanner_ScanWait shows following a log by waiting for records to be appended.
+func ExampleScanner_ScanWait() {
+	dir, err := os.MkdirTemp("", "alog-example-wait-")
+	if err != nil {
+		fmt.Printf("mkdir temp: %v\n", err)
+		return
+	}
+	defer os.RemoveAll(dir) //nolint:errcheck
+
+	l, err := alog.New(dir, alog.DefaultOptions())
+	if err != nil {
+		fmt.Printf("load log: %v\n", err)
+		return
+	}
+	defer l.Close() //nolint:errcheck
+
+	s, err := alog.NewScanner(l)
+	if err != nil {
+		fmt.Printf("new scanner: %v\n", err)
+		return
+	}
+
+	go func() {
+		for _, v := range []string{"a", "b", "c"} {
+			time.Sleep(10 * time.Millisecond)
+
+			if _, err := l.AppendOne([]byte(v)); err != nil {
+				return
+			}
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	for range 3 {
+		if !s.ScanWait(ctx) {
+			fmt.Printf("scan: %v %v\n", s.Err(), ctx.Err())
+			return
+		}
+
+		fmt.Printf("%d:%s\n", s.LastSequence(), s.Data())
+	}
+
+	// Output:
+	// 0:a
+	// 1:b
+	// 2:c
 }
 
 // ExampleNewLimitedScanner shows reading only the leading header of every payload.

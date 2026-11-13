@@ -19,7 +19,28 @@ can be created, seeked and scanned while the log is being appended to.
     returns false and `Err()` is nil, and a later call returns what was appended
     in the meantime, also when this is in a new segment. A loop that stops at
     the first false `Scan` reads what was there at that moment. To keep
-    following the log, call `Scan` again later.
+    following the log, call `Scan` again later, or use `ScanWait`.
+
+## Waiting for records
+
+`ScanWait(ctx)` is `Scan` that waits when the scanner is at the end of the log,
+until a record is appended or `ctx` is done. It is meant for consumers that
+follow the log, so that they do not have to poll.
+
+- It returns true with a record ready, as `Scan` does, and false when it can not
+  continue.
+- When `ctx` is done it returns false, and `Err()` stays nil. The scanner is not
+  failed, and `ScanWait` can be called again. Check `ctx.Err()` to tell this
+  apart from the other cases.
+- When the log is closed while waiting, it returns false with
+  `ErrSegmentReaped`, as `Scan` does for a closed log.
+- A closed scanner, a failed scanner, and a scanner that reached its `StopAt`
+  end do not wait. They return false at once. `StopAt` is exclusive, so the end
+  is reached when a record at or after it is appended.
+
+Every append wakes all waiting scanners, which then check for records
+themselves. A scanner never misses an append that happens while it is
+scanning: it subscribes to the next append before it looks for records.
 
 ## Seeking and bounds
 
@@ -156,6 +177,67 @@ fmt.Printf("%d:%s\n", s.LastSequence(), s.Data())
 // 0:a
 ```
 <!-- EXAMPLE:ExampleScanner_SeekSequence:end -->
+
+<!-- prettier-ignore-end -->
+
+<!-- prettier-ignore-start -->
+
+<!-- EXAMPLE:ExampleScanner_ScanWait:start -->
+### ScanWait
+
+Go reference: [Scanner.ScanWait](https://pkg.go.dev/stuw.net/alog#Scanner.ScanWait).
+
+The following example shows following a log by waiting for records to be appended.
+
+```go
+dir, err := os.MkdirTemp("", "alog-example-wait-")
+if err != nil {
+	fmt.Printf("mkdir temp: %v\n", err)
+	return
+}
+defer os.RemoveAll(dir) //nolint:errcheck
+
+l, err := alog.New(dir, alog.DefaultOptions())
+if err != nil {
+	fmt.Printf("load log: %v\n", err)
+	return
+}
+defer l.Close() //nolint:errcheck
+
+s, err := alog.NewScanner(l)
+if err != nil {
+	fmt.Printf("new scanner: %v\n", err)
+	return
+}
+
+go func() {
+	for _, v := range []string{"a", "b", "c"} {
+		time.Sleep(10 * time.Millisecond)
+
+		if _, err := l.AppendOne([]byte(v)); err != nil {
+			return
+		}
+	}
+}()
+
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+
+for range 3 {
+	if !s.ScanWait(ctx) {
+		fmt.Printf("scan: %v %v\n", s.Err(), ctx.Err())
+		return
+	}
+
+	fmt.Printf("%d:%s\n", s.LastSequence(), s.Data())
+}
+
+// Output:
+// 0:a
+// 1:b
+// 2:c
+```
+<!-- EXAMPLE:ExampleScanner_ScanWait:end -->
 
 <!-- prettier-ignore-end -->
 

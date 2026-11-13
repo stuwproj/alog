@@ -23,6 +23,7 @@ package alog
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -32,6 +33,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"stuw.net/alog/internal/frame"
@@ -357,6 +359,110 @@ func TestScanner_StopAt(t *testing.T) {
 		require.False(t, s.Scan())
 		require.False(t, s.Scan())
 		require.NoError(t, s.Err())
+	})
+}
+
+func TestScanner_ScanWait(t *testing.T) {
+	t.Parallel()
+
+	newLog := func(t *testing.T) (*Log, *Scanner) {
+		t.Helper()
+
+		l, err := New(t.TempDir(), DefaultOptions())
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, l.Close()) })
+
+		s, err := NewScanner(l)
+		require.NoError(t, err)
+
+		return l, s
+	}
+
+	t.Run("returns what is there without waiting", func(t *testing.T) {
+		t.Parallel()
+
+		l, s := newLog(t)
+		_, err := l.AppendOne([]byte("a"))
+		require.NoError(t, err)
+
+		require.True(t, s.ScanWait(context.Background()))
+		require.Equal(t, "a", string(s.Data()))
+	})
+
+	t.Run("waits for an append", func(t *testing.T) {
+		t.Parallel()
+
+		l, s := newLog(t)
+
+		go func() {
+			time.Sleep(20 * time.Millisecond)
+			_, _ = l.AppendMultipart(MultipartPayload{[]byte("a")})
+			_, _ = l.AppendOne([]byte("b"))
+		}()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		t.Cleanup(cancel)
+
+		require.True(t, s.ScanWait(ctx))
+		require.Equal(t, "a", string(s.Data()))
+		require.True(t, s.ScanWait(ctx))
+		require.Equal(t, "b", string(s.Data()))
+		require.NoError(t, s.Err())
+	})
+
+	t.Run("returns false when the context is done and can be used again", func(t *testing.T) {
+		t.Parallel()
+
+		l, s := newLog(t)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+		t.Cleanup(cancel)
+
+		require.False(t, s.ScanWait(ctx))
+		require.NoError(t, s.Err())
+
+		_, err := l.AppendOne([]byte("a"))
+		require.NoError(t, err)
+
+		require.True(t, s.ScanWait(context.Background()))
+		require.Equal(t, "a", string(s.Data()))
+	})
+
+	t.Run("stops when the log is closed", func(t *testing.T) {
+		t.Parallel()
+
+		l, err := New(t.TempDir(), DefaultOptions())
+		require.NoError(t, err)
+
+		s, err := NewScanner(l)
+		require.NoError(t, err)
+
+		go func() {
+			time.Sleep(20 * time.Millisecond)
+			_ = l.Close()
+		}()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		t.Cleanup(cancel)
+
+		require.False(t, s.ScanWait(ctx))
+		require.NoError(t, ctx.Err())
+		require.ErrorIs(t, s.Err(), ErrSegmentReaped)
+	})
+
+	t.Run("does not wait for a closed scanner or a reached end", func(t *testing.T) {
+		t.Parallel()
+
+		l, s := newLog(t)
+		_, err := l.Append([]byte("a"), []byte("b"))
+		require.NoError(t, err)
+
+		s.StopAt(1)
+		require.True(t, s.ScanWait(context.Background()))
+		require.False(t, s.ScanWait(context.Background()))
+
+		require.NoError(t, s.Close())
+		require.False(t, s.ScanWait(context.Background()))
 	})
 }
 

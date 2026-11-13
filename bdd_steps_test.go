@@ -49,6 +49,7 @@ var namedErrors = map[string]error{
 	"ErrLocked":          alog.ErrLocked,
 	"ErrOutOfBounds":     alog.ErrOutOfBounds,
 	"ErrClosed":          alog.ErrClosed,
+	"ErrSegmentReaped":   alog.ErrSegmentReaped,
 	"ErrStopped":         alog.ErrStopped,
 }
 
@@ -64,6 +65,7 @@ type record struct {
 }
 
 type world struct {
+	wait     *waiting
 	log      *alog.Log
 	second   *alog.Log
 	scanner  *alog.Scanner
@@ -104,11 +106,16 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	w.registerScanning(sc)
 	w.registerConcurrency(sc)
 	w.registerOffsets(sc)
+	w.registerWait(sc)
 }
 
 func (w *world) cleanup() {
 	if w.cancel != nil {
 		w.cancel()
+	}
+	if w.wait != nil {
+		w.wait.cancel()
+		<-w.wait.done
 	}
 	if w.scanner != nil {
 		_ = w.scanner.Close()

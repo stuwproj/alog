@@ -62,6 +62,9 @@ type Chain struct {
 	loader         *Loader
 	list           *List
 	snapshot       atomic.Pointer[Snapshot]
+	notify         atomic.Pointer[chan struct{}]
+	done           chan struct{}
+	closeOnce      sync.Once
 	maxSegmentSize int64
 	maxDiskSize    int64
 	diskSize       int64
@@ -87,7 +90,11 @@ func NewChain(
 		maxSegmentSize: maxSegmentSize,
 		loader:         loader,
 		list:           NewList(nil),
+		done:           make(chan struct{}),
 	}
+
+	ch := make(chan struct{})
+	chain.notify.Store(&ch)
 
 	chain.mu.Lock()
 	defer chain.mu.Unlock()
@@ -244,6 +251,7 @@ func (c *Chain) AppendBatchOffsets(batch []frame.MultiPartPayload, offsets []int
 
 	c.diskSize += lastSegment.DiskSize() - oldDiskSize
 	c.logicalSize += n
+	c.wake()
 
 	return startSeq + uint64(len(batch)) - 1, nil
 }
@@ -272,8 +280,29 @@ func (c *Chain) AppendOne(payload []byte) (uint64, error) {
 
 	c.logicalSize += n
 	c.diskSize += lastSegment.DiskSize() - oldDiskSize
+	c.wake()
 
 	return seq, nil
+}
+
+// Notify returns a channel that is closed after the next append to the chain.
+// Fetch it before checking for records, so that an append in between is not missed.
+func (c *Chain) Notify() <-chan struct{} {
+	return *c.notify.Load()
+}
+
+// Done returns a channel that is closed when the chain is closed.
+func (c *Chain) Done() <-chan struct{} {
+	return c.done
+}
+
+// wake closes the notification channel and replaces it with a new one.
+// Caller must hold chain.mu.
+func (c *Chain) wake() {
+	next := make(chan struct{})
+	prev := c.notify.Swap(&next)
+
+	close(*prev)
 }
 
 // emptySegmentSize returns the size of a new segment after appending the batch:
@@ -619,6 +648,10 @@ func (c *Chain) Sync() error {
 func (c *Chain) Close() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	c.closeOnce.Do(func() {
+		close(c.done)
+	})
 
 	var err error
 	for _, segment := range c.list.Slice() {

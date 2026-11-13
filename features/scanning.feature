@@ -58,3 +58,39 @@ Feature: Scanning records
   Scenario: A limited scanner reads only the start of payloads
     Given the log contains "alpha", "beta"
     Then limited scanning from sequence 5 with a limit of 2 bytes yields "al", "be"
+
+  Scenario: A waiting scan returns a record that is already there
+    Given a scanner at the start
+    When a scan is waiting for a record
+    Then the waiting scan yields "a"
+
+  Scenario: A waiting scan returns when a record is appended
+    Given an empty log
+    And a scanner at the start
+    And a scan is waiting for a record
+    When I append "f"
+    Then the waiting scan yields "f"
+
+  Scenario: A waiting scan returns when a batch is appended
+    Given an empty log
+    And a scanner at the start
+    And a scan is waiting for a record
+    When I append the batch "f", "g"
+    Then the waiting scan yields "f"
+    And scanning yields "g"
+
+  Scenario: A cancelled wait does not fail the scanner
+    Given an empty log
+    And a scanner at the start
+    And a scan is waiting for a record
+    When I cancel the wait
+    Then the waiting scan stops without a record
+    And I append "f"
+    And scanning yields "f"
+
+  Scenario: Closing the log ends a wait
+    Given an empty log
+    And a scanner at the start
+    And a scan is waiting for a record
+    When I close the log
+    Then the waiting scan stops with ErrSegmentReaped

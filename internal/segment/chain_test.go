@@ -220,6 +220,65 @@ func scanRecord(sc *scanner.Scanner) bool {
 	return false
 }
 
+func TestChain_Notify(t *testing.T) {
+	t.Parallel()
+
+	chain := NewLoadedChain(t, 0, 1<<20)
+	t.Cleanup(func() { require.NoError(t, chain.Close()) })
+
+	closed := func(ch <-chan struct{}) bool {
+		select {
+		case <-ch:
+			return true
+		default:
+			return false
+		}
+	}
+
+	t.Run("is closed by an append and replaced", func(t *testing.T) {
+		before := chain.Notify()
+		require.False(t, closed(before))
+		require.Equal(t, before, chain.Notify())
+
+		_, err := chain.AppendOne([]byte("a"))
+		require.NoError(t, err)
+		require.True(t, closed(before))
+
+		after := chain.Notify()
+		require.NotEqual(t, before, after)
+		require.False(t, closed(after))
+
+		_, err = chain.AppendBatch([]frame.MultiPartPayload{{[]byte("b")}, {[]byte("c")}})
+		require.NoError(t, err)
+		require.True(t, closed(after))
+	})
+
+	t.Run("is kept by an append that stores nothing", func(t *testing.T) {
+		before := chain.Notify()
+
+		_, err := chain.AppendBatch(nil)
+		require.NoError(t, err)
+		require.False(t, closed(before))
+	})
+}
+
+func TestChain_Done(t *testing.T) {
+	t.Parallel()
+
+	chain := NewLoadedChain(t, 0, 1<<20)
+
+	select {
+	case <-chain.Done():
+		t.Fatal("done before close")
+	default:
+	}
+
+	require.NoError(t, chain.Close())
+	<-chain.Done()
+
+	require.NoError(t, chain.Close())
+}
+
 func TestChain_AppendBatch(t *testing.T) {
 	t.Parallel()
 

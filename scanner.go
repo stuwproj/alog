@@ -22,6 +22,7 @@
 package alog
 
 import (
+	"context"
 	"errors"
 	"io"
 	"math"
@@ -168,6 +169,36 @@ func (s *Scanner) Scan() bool {
 		}
 
 		if !s.nextSegment() {
+			return false
+		}
+	}
+}
+
+// ScanWait is Scan, but it waits for a record to be appended when the scanner
+// is at the end of the log, until ctx is done. It returns false when ctx is done, which
+// does not fail the scanner, so that it can be used again, or when the scanner
+// failed, was closed, or reached its end set by StopAt. Err does not report ctx.Err().
+// When the log is closed while waiting it returns false, and Err returns ErrSegmentReaped.
+func (s *Scanner) ScanWait(ctx context.Context) bool {
+	for {
+		// fetched before scanning, so that an append in between wakes up the wait
+		notify := s.log.chain.Notify()
+
+		if s.Scan() {
+			return true
+		}
+
+		if s.closed || s.err != nil {
+			return false
+		}
+
+		select {
+		case <-ctx.Done():
+			return false
+		case <-notify:
+		case <-s.log.chain.Done():
+			s.setErr(ErrSegmentReaped)
+
 			return false
 		}
 	}
