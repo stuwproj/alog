@@ -29,11 +29,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"stuw.net/alog/internal/frame"
 	"stuw.net/alog/internal/header"
 	"stuw.net/alog/internal/storage"
 	modframe "stuw.net/frame"
-	"github.com/stretchr/testify/require"
 )
 
 const eofTestStride = 4

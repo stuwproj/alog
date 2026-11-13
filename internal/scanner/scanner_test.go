@@ -27,10 +27,10 @@ import (
 	"io"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"stuw.net/alog/internal/checkpoint"
 	"stuw.net/alog/internal/frame"
 	framecore "stuw.net/frame"
-	"github.com/stretchr/testify/require"
 )
 
 type stubValidator func(*frame.Header, []byte) error

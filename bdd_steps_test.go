@@ -1,6 +1,6 @@
 // MIT License
 //
-// # Copyright (C) 2025 John Kleijn
+// Copyright (C) 2025 John Kleijn
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,6 +18,7 @@
 // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+
 package alog_test
 
 import (
@@ -58,45 +59,39 @@ type state struct {
 }
 
 type record struct {
-	seq     uint64
 	payload string
+	seq     uint64
 }
 
 type world struct {
-	dir  string
-	opts alog.Options
-	log  *alog.Log
-
-	second *alog.Log
-
-	lastSeq uint64
-	err     error
-	before  state
-
-	diskBefore int64
-
-	scanner *alog.Scanner
-
-	visited  []string
+	log      *alog.Log
+	second   *alog.Log
+	scanner  *alog.Scanner
+	writer   *alog.Writer
+	cancel   context.CancelFunc
+	err      error
 	rangeErr error
-
-	writer *alog.Writer
-	cancel context.CancelFunc
+	spots    map[string]spot
 
 	producerSeqs [][]uint64
 	reader       []uint64
+	visited      []string
+	dir          string
+	opts         alog.Options
+	before       state
 
-	spots map[string]spot
+	lastSeq    uint64
+	diskBefore int64
 }
 
 func initializeScenario(sc *godog.ScenarioContext) {
 	w := &world{}
 
-	sc.Before(func(ctx context.Context, s *godog.Scenario) (context.Context, error) {
+	sc.Before(func(ctx context.Context, _ *godog.Scenario) (context.Context, error) {
 		*w = world{}
 		return ctx, nil
 	})
-	sc.After(func(ctx context.Context, s *godog.Scenario, err error) (context.Context, error) {
+	sc.After(func(ctx context.Context, _ *godog.Scenario, _ error) (context.Context, error) {
 		w.cleanup()
 		return ctx, nil
 	})
@@ -190,7 +185,7 @@ func quoted(list string) []string {
 
 func numbers(list string) ([]uint64, error) {
 	var out []uint64
-	for _, f := range strings.Split(list, ",") {
+	for f := range strings.SplitSeq(list, ",") {
 		n, err := strconv.ParseUint(strings.TrimSpace(f), 10, 64)
 		if err != nil {
 			return nil, err
@@ -269,7 +264,7 @@ func (w *world) registerGiven(sc *godog.ScenarioContext) {
 	})
 
 	sc.Step(`^the log contains ((?:"[^"]*"(?:, )?)+)$`, func(list string) error {
-		var batch [][]byte
+		batch := make([][]byte, 0, len(list))
 		for _, p := range quoted(list) {
 			batch = append(batch, []byte(p))
 		}
@@ -296,7 +291,7 @@ func (w *world) registerAppend(sc *godog.ScenarioContext) {
 	})
 
 	sc.Step(`^I append the batch ((?:"[^"]*"(?:, )?)+)$`, func(list string) error {
-		var batch [][]byte
+		batch := make([][]byte, 0, len(list))
 		for _, p := range quoted(list) {
 			batch = append(batch, []byte(p))
 		}
@@ -304,7 +299,7 @@ func (w *world) registerAppend(sc *godog.ScenarioContext) {
 	})
 
 	sc.Step(`^I append the multipart record ((?:"[^"]*"(?:, )?)+)$`, func(list string) error {
-		var parts alog.MultipartPayload
+		parts := make(alog.MultipartPayload, 0, len(list))
 		for _, p := range quoted(list) {
 			parts = append(parts, []byte(p))
 		}
@@ -334,7 +329,7 @@ func (w *world) registerAppend(sc *godog.ScenarioContext) {
 				return err
 			}
 			if w.err != nil {
-				return nil
+				return nil //nolint:nilerr // the failure is the expected outcome
 			}
 		}
 		return errors.New("append never failed")
@@ -395,7 +390,7 @@ func (w *world) expectError(name string) error {
 		return fmt.Errorf("unknown error %q", name)
 	}
 	if !errors.Is(w.err, want) {
-		return fmt.Errorf("expected %s, got %v", name, w.err)
+		return fmt.Errorf("expected %s, got %w", name, w.err)
 	}
 	return nil
 }
@@ -545,7 +540,7 @@ func drain(s *alog.Scanner) ([]record, error) {
 }
 
 func expectPayloads(got []record, want []string) error {
-	if !reflect.DeepEqual(payloads(got), append([]string{}, want...)) && !(len(got) == 0 && len(want) == 0) {
+	if !reflect.DeepEqual(payloads(got), append([]string{}, want...)) && (len(got) != 0 || len(want) != 0) {
 		return fmt.Errorf("got %q, want %q", payloads(got), want)
 	}
 	return nil
@@ -704,7 +699,7 @@ func (w *world) registerRange(sc *godog.ScenarioContext, list string) {
 
 	sc.Step(`^the range returned the callback error$`, func() error {
 		if !errors.Is(w.rangeErr, errCallback) {
-			return fmt.Errorf("range returned %v", w.rangeErr)
+			return fmt.Errorf("range returned %w", w.rangeErr)
 		}
 		return nil
 	})
@@ -777,7 +772,7 @@ func (w *world) registerConcurrency(sc *godog.ScenarioContext) {
 			_, err := w.writer.Append(ctx, []byte("x"))
 			cancel()
 			if err != nil {
-				return nil
+				return nil //nolint:nilerr // the failure is the expected outcome
 			}
 		}
 		return errors.New("append through a stopped writer kept succeeding")
@@ -801,9 +796,7 @@ func (w *world) produce(producers, count int, withReader bool) error {
 	errs := make(chan error, producers)
 
 	for p := range producers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for i := range count {
 				seq, err := w.writer.Append(context.Background(), []byte(fmt.Sprintf("p%d/%d", p, i)))
 				if err != nil {
@@ -812,7 +805,7 @@ func (w *world) produce(producers, count int, withReader bool) error {
 				}
 				w.producerSeqs[p] = append(w.producerSeqs[p], seq)
 			}
-		}()
+		})
 	}
 
 	wg.Wait()

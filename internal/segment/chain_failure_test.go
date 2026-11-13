@@ -29,9 +29,9 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"stuw.net/alog/internal/frame"
 	"stuw.net/alog/internal/storage"
-	"github.com/stretchr/testify/require"
 )
 
 var errFS = errors.New("injected filesystem failure")

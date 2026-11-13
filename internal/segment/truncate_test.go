@@ -28,9 +28,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"stuw.net/alog/internal/frame"
 	"stuw.net/alog/internal/header"
-	"github.com/stretchr/testify/require"
 )
 
 // FuzzSegment_TailTruncationRecovery truncates persisted tails and verifies

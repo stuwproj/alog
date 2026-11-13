@@ -27,8 +27,8 @@ import (
 	"io"
 	"testing"
 
-	"stuw.net/alog"
 	"github.com/stretchr/testify/require"
+	"stuw.net/alog"
 )
 
 func TestRangeFrom(t *testing.T) {

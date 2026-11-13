@@ -1,6 +1,6 @@
 // MIT License
 //
-// # Copyright (C) 2025 John Kleijn
+// Copyright (C) 2025 John Kleijn
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,6 +18,7 @@
 // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+
 package alog_test
 
 import (
@@ -268,7 +269,7 @@ func (w *world) registerOffsets(sc *godog.ScenarioContext) {
 				return fmt.Errorf("seek to %q: %w", want.payload, err)
 			}
 			if !s.Scan() {
-				return fmt.Errorf("scan at %q: %v", want.payload, s.Err())
+				return fmt.Errorf("scan at %q: %w", want.payload, s.Err())
 			}
 			if s.LastSequence() != want.seq || string(s.Data()) != want.payload {
 				return fmt.Errorf("at the offset of %q found %q at sequence %d", want.payload, s.Data(), s.LastSequence())

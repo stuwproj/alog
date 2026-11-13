@@ -2,8 +2,6 @@ module stuw.net/alog
 
 go 1.26.9
 
-retract v1.0.0 // don't use v1.0.0
-
 require (
 	github.com/cucumber/godog v0.16.0
 	github.com/fuweid/go-dmflakey v0.0.0-20240326101426-9fa9d5c2ac1c

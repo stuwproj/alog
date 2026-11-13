@@ -24,8 +24,8 @@ package segment
 import (
 	"testing"
 
-	"stuw.net/alog/internal/header"
 	"github.com/stretchr/testify/require"
+	"stuw.net/alog/internal/header"
 )
 
 func TestList_Search(t *testing.T) {

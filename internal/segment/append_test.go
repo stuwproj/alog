@@ -30,11 +30,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"stuw.net/alog/internal/checkpoint"
 	"stuw.net/alog/internal/frame"
 	"stuw.net/alog/internal/header"
 	modframe "stuw.net/frame"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSegment_Append(t *testing.T) {

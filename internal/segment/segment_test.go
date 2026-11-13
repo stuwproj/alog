@@ -27,9 +27,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"stuw.net/alog/internal/frame"
 	"stuw.net/alog/internal/header"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSegment_ProjectedSize(t *testing.T) {

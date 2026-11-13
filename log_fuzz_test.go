@@ -25,8 +25,8 @@ package alog_test
 import (
 	"testing"
 
-	"stuw.net/alog"
 	"github.com/stretchr/testify/require"
+	"stuw.net/alog"
 )
 
 const (

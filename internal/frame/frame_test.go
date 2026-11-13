@@ -25,8 +25,8 @@ import (
 	"hash/crc32"
 	"testing"
 
-	modframe "stuw.net/frame"
 	"github.com/stretchr/testify/require"
+	modframe "stuw.net/frame"
 )
 
 func TestHeader_Set(t *testing.T) {

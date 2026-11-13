@@ -27,9 +27,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"stuw.net/alog/internal/frame"
 	"stuw.net/alog/internal/storage"
-	"github.com/stretchr/testify/require"
 )
 
 const faultyStride = 4

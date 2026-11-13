@@ -337,13 +337,14 @@ func (s *Scanner) seekOffset(seq uint64, offset int64) (retry bool, err error) {
 
 	seg.Refresh(sc)
 
-	if idx := seq - sc.BaseSeq; seq < sc.BaseSeq || idx > math.MaxUint32 {
+	idx := seq - sc.BaseSeq
+	if seq < sc.BaseSeq || idx > math.MaxUint32 {
 		lease.Release()
 
 		return false, ErrOutOfBounds
 	}
 
-	err = sc.Seek(uint32(seq-sc.BaseSeq), offset)
+	err = sc.Seek(uint32(idx), offset) //nolint:gosec // bounded by the check above
 	lease.Release()
 
 	if err != nil {

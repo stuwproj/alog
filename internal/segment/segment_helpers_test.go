@@ -26,8 +26,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"stuw.net/alog/internal/storage"
 	"github.com/stretchr/testify/require"
+	"stuw.net/alog/internal/storage"
 )
 
 func NewLoadedChain(t *testing.T, maxSegments int, maxSegmentSize int64) *Chain {

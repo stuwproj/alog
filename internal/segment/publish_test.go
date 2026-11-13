@@ -27,10 +27,10 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"stuw.net/alog/internal/frame"
 	"stuw.net/alog/internal/scanner"
 	"stuw.net/alog/internal/storage"
-	"github.com/stretchr/testify/require"
 )
 
 const noLimit = ^uint32(0)

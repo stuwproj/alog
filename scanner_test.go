@@ -33,8 +33,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"stuw.net/alog/internal/frame"
 	"github.com/stretchr/testify/require"
+	"stuw.net/alog/internal/frame"
 )
 
 func TestScanner_SeekSequence(t *testing.T) {

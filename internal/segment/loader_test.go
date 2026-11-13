@@ -29,12 +29,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"stuw.net/alog/internal/frame"
 	"stuw.net/alog/internal/header"
 	"stuw.net/alog/internal/storage"
 	storagemocks "stuw.net/alog/internal/storage/mocks"
 	"stuw.net/alog/internal/testutil"
-	"github.com/stretchr/testify/require"
 )
 
 func TestLoader_FindPaths(t *testing.T) {

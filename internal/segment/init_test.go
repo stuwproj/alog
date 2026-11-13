@@ -27,12 +27,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"stuw.net/alog/internal/frame"
 	"stuw.net/alog/internal/header"
 	"stuw.net/alog/internal/scanner"
 	"stuw.net/alog/internal/storage"
 	"stuw.net/alog/internal/testutil"
-	"github.com/stretchr/testify/require"
 )
 
 const (

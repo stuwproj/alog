@@ -32,8 +32,8 @@ import (
 	"testing"
 	"time"
 
-	"stuw.net/alog/internal/storage"
 	"github.com/stretchr/testify/require"
+	"stuw.net/alog/internal/storage"
 )
 
 // scanUntilDone repeatedly creates scanners and scans the log while appends

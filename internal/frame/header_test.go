@@ -26,8 +26,8 @@ import (
 	"io"
 	"testing"
 
-	modframe "stuw.net/frame"
 	"github.com/stretchr/testify/require"
+	modframe "stuw.net/frame"
 )
 
 func headerWithFlags(flags uint16) (h Header) {

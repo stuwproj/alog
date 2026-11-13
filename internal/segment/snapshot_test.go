@@ -25,8 +25,8 @@ import (
 	"fmt"
 	"testing"
 
-	"stuw.net/alog/internal/frame"
 	"github.com/stretchr/testify/require"
+	"stuw.net/alog/internal/frame"
 )
 
 func TestSnapshot_Locate(t *testing.T) {

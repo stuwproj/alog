@@ -25,8 +25,8 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"stuw.net/alog/internal/storage"
 	"github.com/stretchr/testify/require"
+	"stuw.net/alog/internal/storage"
 )
 
 func TestNewHeader(t *testing.T) {

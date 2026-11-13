@@ -27,9 +27,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"stuw.net/alog"
 	"stuw.net/alog/internal/testutil"
-	"github.com/stretchr/testify/require"
 )
 
 const (

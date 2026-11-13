@@ -66,9 +66,9 @@ func TestScannerSeekOffset(t *testing.T) {
 			batch[i] = alog.MultipartPayload{[]byte("p"), []byte(fmt.Sprintf("-%d-%d", b, i)), pad}
 		}
 
-		last, err := l.AppendMultipartBatchOffsets(batch, offsets)
-		if err != nil {
-			t.Fatal(err)
+		last, appendErr := l.AppendMultipartBatchOffsets(batch, offsets)
+		if appendErr != nil {
+			t.Fatal(appendErr)
 		}
 
 		first := last - uint64(n) + 1
@@ -89,9 +89,10 @@ func TestScannerSeekOffset(t *testing.T) {
 	for round := range 3 {
 		for i := range locs {
 			j := i
-			if round == 1 {
+			switch round {
+			case 1:
 				j = len(locs) - 1 - i
-			} else if round == 2 {
+			case 2:
 				j = (i * 7) % len(locs)
 			}
 
